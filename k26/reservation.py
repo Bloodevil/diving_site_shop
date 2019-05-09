@@ -9,6 +9,34 @@ board_url = "/reserved_community/board_list.php?cp=%i"
 post_url = "/reserved_community/board_read.php?rn=%i&ss="
 today = time.time()
 
+# make thoese to class
+def get_service():
+    SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+    """Shows basic usage of the Google Calendar API.
+    Prints the start and name of the next 10 events on the user's calendar.
+    """
+    creds = None
+    # The file token.pickle stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server()
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+
+    service = build('calendar', 'v3', credentials=creds)
+    return service
+
 def get_data(res):
     saved_info = {}
     link = res.find('a')
@@ -34,13 +62,13 @@ def get_data(res):
                 if len(info_list) > 6:
                     date = datetime.strptime(info_list[0].split('(')[0], '%Y-%m-%d')
                     time_start, time_end = 0, 0
-                    if info_list[3] == "이용시간":
-                        time_start, time_end = info_list[4].split("~")
+                    if info_list[5] == "이용시간":
+                        time_start, time_end = info_list[6].split("~")
                         time_start = int(time_start.split(":")[0])
                         time_end = int(time_end.split(":")[0])-1
                     diving_type = "free"
-                    if info_list[5].strip() == "이용종목":
-                        if info_list[6].strip() == "스킨스쿠버":
+                    if info_list[3].strip() == "이용종목":
+                        if info_list[4].strip() == "스킨스쿠버":
                             diving_type = "diving"
                     if date.timestamp() < today-(60*60*24):
                         return '', {}
@@ -82,7 +110,7 @@ if __name__ == "__main__":
             exist = False
         else:
             print(num)
-    
+
     for info in saved_info:
         print(info)
         for x in range(0,24):
